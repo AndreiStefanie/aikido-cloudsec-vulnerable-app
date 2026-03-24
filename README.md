@@ -53,6 +53,7 @@ At minimum, set:
 - `VpcId`: your default VPC ID
 - `SubnetId`: a public subnet ID from that default VPC
 - `AppRepositoryRef`: a branch or tag that contains the version of this repo you want the instance to clone
+- `WorkshopBucketName`: a globally unique S3 bucket name
 
 `AppRepositoryUrl` defaults to this GitHub repository. If you deploy from a fork or another mirror, override it.
 
@@ -66,7 +67,8 @@ aws cloudformation deploy \
   --parameter-overrides \
     VpcId='vpc-xxxxxxxx' \
     SubnetId='subnet-xxxxxxxx' \
-    AppRepositoryRef='main'
+    AppRepositoryRef='main' \
+    WorkshopBucketName='lifecycle-data-cache-demo'
 ```
 
 After the stack finishes:
@@ -78,7 +80,7 @@ After the stack finishes:
 
 ## Maintainer Notes
 
-The workshop bucket name is generated as `<account-id>-<region>-<suffix>`, where the suffix defaults to `cloudsec-workshop-code`. Upload the workshop code file yourself after deployment.
+The workshop bucket name is set explicitly through `WorkshopBucketName`. Pick something generic but globally unique, then upload the workshop code file yourself after deployment.
 
 The EC2 instance profile is intentionally scoped so exfiltrated credentials can:
 

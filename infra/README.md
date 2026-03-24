@@ -11,7 +11,7 @@ This stack deploys a single public EC2 instance running the vulnerable app, an e
 - `AppPort`: internal TCP port used by the Express app behind Nginx. Default: `3000`
 - `AppRepositoryUrl`: public Git URL cloned onto the EC2 instance during bootstrap.
 - `AppRepositoryRef`: branch or tag checked out during bootstrap.
-- `WorkshopBucketSuffix`: lowercase suffix used in the generated bucket name `<account>-<region>-<suffix>`.
+- `WorkshopBucketName`: globally unique S3 bucket name used for the workshop code file.
 - `AppTitle`, `AppSubtitle`, `WorkshopHint`: copy injected into the landing page.
 
 ## Outputs

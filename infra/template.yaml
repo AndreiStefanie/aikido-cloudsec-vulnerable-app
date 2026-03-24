@@ -30,11 +30,11 @@ Parameters:
     Type: String
     Default: main
     Description: Git branch, tag, or ref checked out on the EC2 instance.
-  WorkshopBucketSuffix:
+  WorkshopBucketName:
     Type: String
-    Default: cloudsec-workshop-code
+    Default: lifecycle-data-cache
     AllowedPattern: '^[a-z0-9-]+$'
-    Description: Lowercase suffix appended to the account and region to form the S3 bucket name.
+    Description: Globally unique S3 bucket name used to store the workshop code file.
   AppTitle:
     Type: String
     Default: Lifecycle Lookup
@@ -69,7 +69,7 @@ Resources:
   WorkshopBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub '${AWS::AccountId}-${AWS::Region}-${WorkshopBucketSuffix}'
+      BucketName: !Ref WorkshopBucketName
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
