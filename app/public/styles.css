@@ -81,7 +81,7 @@ h1 {
 }
 
 .preview-form {
-  margin-top: 24px;
+  margin-top: 18px;
 }
 
 .feed-group {
@@ -114,6 +114,23 @@ h1 {
 .feed-chip:hover {
   background: rgba(255, 255, 255, 0.94);
   color: var(--text);
+}
+
+.secondary-button {
+  margin-top: 20px;
+  background: rgba(255, 255, 255, 0.56);
+  color: var(--text);
+  border: 1px solid rgba(22, 32, 41, 0.1);
+}
+
+.secondary-button:hover {
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text);
+}
+
+.custom-source-panel {
+  padding: 16px 18px 0;
+  border-top: 1px solid rgba(22, 32, 41, 0.08);
 }
 
 .preview-form label {

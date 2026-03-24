@@ -55,20 +55,25 @@ function renderPage(initialUrl = "") {
             ${feedCards}
           </div>
         </div>
+        <button id="toggle-custom-source" class="secondary-button" type="button" aria-expanded="false">
+          Use custom source
+        </button>
         <form id="preview-form" class="preview-form">
-          <label for="url">Remote URL</label>
-          <div class="row">
-            <input
-              id="url"
-              name="url"
-              type="text"
-              inputmode="url"
-              spellcheck="false"
-              placeholder="https://endoflife.date/api/python.json"
-              value="${safeInitialUrl || escapeHtml(DEFAULT_FEEDS[0].url)}"
-              required
-            />
-            <button type="submit">Fetch Data</button>
+          <div id="custom-source-panel" class="custom-source-panel" hidden>
+            <label for="url">Custom source URL</label>
+            <div class="row">
+              <input
+                id="url"
+                name="url"
+                type="text"
+                inputmode="url"
+                spellcheck="false"
+                placeholder="https://endoflife.date/api/python.json"
+                value="${safeInitialUrl || escapeHtml(DEFAULT_FEEDS[0].url)}"
+                required
+              />
+              <button type="submit">Fetch Data</button>
+            </div>
           </div>
         </form>
         <p class="hint">${escapeHtml(WORKSHOP_HINT)}</p>
@@ -88,6 +93,8 @@ function renderPage(initialUrl = "") {
       const output = document.getElementById("output");
       const urlInput = document.getElementById("url");
       const feedButtons = Array.from(document.querySelectorAll("[data-url]"));
+      const toggleButton = document.getElementById("toggle-custom-source");
+      const customSourcePanel = document.getElementById("custom-source-panel");
 
       async function fetchFeed(url) {
         output.textContent = "Fetching...";
@@ -112,6 +119,18 @@ function renderPage(initialUrl = "") {
           urlInput.value = url;
           await fetchFeed(url);
         });
+      });
+
+      toggleButton.addEventListener("click", () => {
+        const isHidden = customSourcePanel.hasAttribute("hidden");
+        customSourcePanel.toggleAttribute("hidden");
+        toggleButton.setAttribute("aria-expanded", String(isHidden));
+        toggleButton.textContent = isHidden ? "Hide custom source" : "Use custom source";
+
+        if (isHidden) {
+          urlInput.focus();
+          urlInput.select();
+        }
       });
 
       fetchFeed(urlInput.value);
