@@ -1,0 +1,209 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deliberately vulnerable EC2 IMDSv1 SSRF workshop stack.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC used for the workshop host. Use the account's default VPC.
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Public subnet used for the workshop host. Use a subnet from the default VPC that auto-assigns public IPv4 addresses.
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    Description: EC2 instance type for the workshop host.
+  KeyName:
+    Type: String
+    Default: ''
+    Description: Optional EC2 key pair name for SSH access.
+  AppPort:
+    Type: Number
+    Default: 3000
+    MinValue: 1
+    MaxValue: 65535
+    Description: Internal port used by the Express application behind Nginx.
+  AppRepositoryUrl:
+    Type: String
+    Default: https://github.com/AndreiStefanie/aikido-cloudsec-vulnerable-app.git
+    Description: Public Git repository URL cloned by the EC2 instance during bootstrap.
+  AppRepositoryRef:
+    Type: String
+    Default: main
+    Description: Git branch, tag, or ref checked out on the EC2 instance.
+  WorkshopBucketSuffix:
+    Type: String
+    Default: cloudsec-workshop-code
+    AllowedPattern: '^[a-z0-9-]+$'
+    Description: Lowercase suffix appended to the account and region to form the S3 bucket name.
+  AppTitle:
+    Type: String
+    Default: Lifecycle Lookup
+    Description: Landing page title shown to workshop attendees.
+  AppSubtitle:
+    Type: String
+    Default: Check end-of-life and release cadence data for common technologies before approving upgrades.
+    Description: Landing page subtitle text.
+  WorkshopHint:
+    Type: String
+    Default: The team usually starts with built-in feeds, but the fetcher also accepts a custom JSON source when vendor data lives elsewhere.
+    Description: Hint text shown on the landing page.
+
+Conditions:
+  HasKeyName: !Not [!Equals [!Ref KeyName, '']]
+
+Resources:
+  WorkshopSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP access to the vulnerable workshop app.
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  WorkshopBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::AccountId}-${AWS::Region}-${WorkshopBucketSuffix}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Suspended
+
+  WorkshopInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: workshop-s3-read
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:ListAllMyBuckets
+                Resource: '*'
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt WorkshopBucket.Arn
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub '${WorkshopBucket.Arn}/*'
+
+  WorkshopInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref WorkshopInstanceRole
+
+  WorkshopInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref WorkshopInstanceProfile
+      ImageId: !Sub '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}'
+      InstanceType: !Ref InstanceType
+      KeyName: !If [HasKeyName, !Ref KeyName, !Ref 'AWS::NoValue']
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: optional
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref WorkshopSecurityGroup
+          SubnetId: !Ref SubnetId
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-workshop-host'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euxo pipefail
+
+          dnf install -y git nginx nodejs20
+
+          rm -rf /opt/workshop-repo
+          git clone --depth 1 --branch '${AppRepositoryRef}' '${AppRepositoryUrl}' /opt/workshop-repo
+
+          cd /opt/workshop-repo/app
+          npm install --omit=dev
+
+          cat <<'EOF' >/etc/aikido-workshop.env
+          PORT="${AppPort}"
+          APP_TITLE="${AppTitle}"
+          APP_SUBTITLE="${AppSubtitle}"
+          WORKSHOP_HINT="${WorkshopHint}"
+          EOF
+
+          cat <<'EOF' >/etc/systemd/system/aikido-workshop.service
+          [Unit]
+          Description=Aikido vulnerable workshop app
+          After=network.target
+
+          [Service]
+          Type=simple
+          WorkingDirectory=/opt/workshop-repo/app
+          EnvironmentFile=/etc/aikido-workshop.env
+          ExecStart=/usr/bin/node /opt/workshop-repo/app/server.js
+          Restart=always
+          RestartSec=3
+          User=root
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          cat <<EOF >/etc/nginx/conf.d/aikido-workshop.conf
+          server {
+            listen 80 default_server;
+            listen [::]:80 default_server;
+            server_name _;
+
+            location / {
+              proxy_pass http://127.0.0.1:${AppPort};
+              proxy_http_version 1.1;
+              proxy_set_header Host \$host;
+              proxy_set_header X-Real-IP \$remote_addr;
+              proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto \$scheme;
+              proxy_set_header Connection "";
+            }
+          }
+          EOF
+
+          systemctl daemon-reload
+          rm -f /etc/nginx/default.d/*.conf
+          systemctl enable --now aikido-workshop.service
+          systemctl enable --now nginx
+
+  WorkshopElasticIp:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref WorkshopInstance
+
+Outputs:
+  AppUrl:
+    Description: Public URL for the vulnerable workshop app.
+    Value: !Sub 'http://${WorkshopElasticIp}'
+  PublicIp:
+    Description: Elastic IP address associated with the EC2 instance.
+    Value: !Ref WorkshopElasticIp
+  WorkshopBucketName:
+    Description: Name of the S3 bucket that stores the workshop code object.
+    Value: !Ref WorkshopBucket

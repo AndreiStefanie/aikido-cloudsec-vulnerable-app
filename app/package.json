@@ -1,0 +1,16 @@
+{
+  "name": "aikido-cloudsec-vulnerable-app",
+  "version": "1.0.0",
+  "description": "Purposefully vulnerable SSRF workshop app for IMDSv1 credential exfiltration demos.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
+
