@@ -84,27 +84,130 @@ function renderPage(initialUrl = "") {
           <h2>Response</h2>
           <p>Server-side lifecycle feed output appears here.</p>
         </div>
-        <pre id="output">Loading default technology lifecycle data...</pre>
+        <div id="response-meta" class="response-meta" hidden></div>
+        <div id="output" class="response-output">Loading default technology lifecycle data...</div>
       </section>
     </main>
 
     <script>
       const form = document.getElementById("preview-form");
       const output = document.getElementById("output");
+      const responseMeta = document.getElementById("response-meta");
       const urlInput = document.getElementById("url");
       const feedButtons = Array.from(document.querySelectorAll("[data-url]"));
       const toggleButton = document.getElementById("toggle-custom-source");
       const customSourcePanel = document.getElementById("custom-source-panel");
 
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function formatScalar(value) {
+        if (value === null) {
+          return '<span class="json-null">null</span>';
+        }
+
+        if (typeof value === "string") {
+          return '<span class="json-string">' + escapeHtml(value) + "</span>";
+        }
+
+        if (typeof value === "number") {
+          return '<span class="json-number">' + value + "</span>";
+        }
+
+        if (typeof value === "boolean") {
+          return '<span class="json-boolean">' + value + "</span>";
+        }
+
+        return escapeHtml(JSON.stringify(value));
+      }
+
+      function renderJsonValue(value) {
+        if (Array.isArray(value)) {
+          if (value.length === 0) {
+            return '<div class="json-empty">[]</div>';
+          }
+
+          const items = value
+            .map((item, index) => {
+              if (item && typeof item === "object") {
+                return '<section class="json-card"><div class="json-card-title">Item ' + (index + 1) + "</div>" + renderJsonValue(item) + "</section>";
+              }
+
+              return '<div class="json-list-item">' + formatScalar(item) + "</div>";
+            })
+            .join("");
+
+          return '<div class="json-list">' + items + "</div>";
+        }
+
+        if (value && typeof value === "object") {
+          const entries = Object.entries(value);
+
+          if (entries.length === 0) {
+            return '<div class="json-empty">{}</div>';
+          }
+
+          const rows = entries
+            .map(([key, item]) => {
+              const rendered = item && typeof item === "object" ? renderJsonValue(item) : formatScalar(item);
+              return '<div class="json-row"><div class="json-key">' + escapeHtml(key) + '</div><div class="json-value">' + rendered + "</div></div>";
+            })
+            .join("");
+
+          return '<div class="json-grid">' + rows + "</div>";
+        }
+
+        return '<div class="json-scalar">' + formatScalar(value) + "</div>";
+      }
+
+      function renderPlaintext(text) {
+        return '<pre class="raw-output">' + escapeHtml(text) + "</pre>";
+      }
+
+      function renderResponse(payload) {
+        responseMeta.hidden = false;
+        responseMeta.innerHTML =
+          '<div class="meta-pill">Requested: <span>' + escapeHtml(payload.requestedUrl || "") + "</span></div>" +
+          '<div class="meta-pill">Status: <span>' + escapeHtml(payload.status + " " + (payload.statusText || "")) + "</span></div>";
+
+        const contentType = payload.headers && payload.headers["content-type"] ? payload.headers["content-type"] : "";
+
+        if (payload.error) {
+          output.innerHTML = '<pre class="raw-output">' + escapeHtml(JSON.stringify(payload, null, 2)) + "</pre>";
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(payload.body);
+          output.innerHTML = renderJsonValue(parsed);
+          return;
+        } catch (error) {
+          if (contentType.includes("json")) {
+            output.innerHTML = '<pre class="raw-output">' + escapeHtml(payload.body) + "</pre>";
+            return;
+          }
+        }
+
+        output.innerHTML = renderPlaintext(payload.body);
+      }
+
       async function fetchFeed(url) {
+        responseMeta.hidden = true;
+        responseMeta.innerHTML = "";
         output.textContent = "Fetching...";
 
         try {
           const response = await fetch("/fetch?url=" + encodeURIComponent(url));
           const payload = await response.json();
-          output.textContent = JSON.stringify(payload, null, 2);
+          renderResponse(payload);
         } catch (error) {
-          output.textContent = JSON.stringify({ error: error.message }, null, 2);
+          output.innerHTML = '<pre class="raw-output">' + escapeHtml(JSON.stringify({ error: error.message }, null, 2)) + "</pre>";
         }
       }
 
