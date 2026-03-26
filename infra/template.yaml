@@ -30,6 +30,10 @@ Parameters:
     Type: String
     Default: main
     Description: Git branch, tag, or ref checked out on the EC2 instance.
+  DomainName:
+    Type: String
+    Default: eol.rsa.aikido-security.com
+    Description: Public DNS name that will point to the workshop Elastic IP and be used by Nginx for TLS.
   WorkshopBucketName:
     Type: String
     Default: lifecycle-data-cache
@@ -61,6 +65,10 @@ Resources:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
           CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: -1
@@ -129,7 +137,7 @@ Resources:
           SubnetId: !Ref SubnetId
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-workshop-host'
+          Value: !Sub '${AWS::StackName}-eol'
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
@@ -172,7 +180,7 @@ Resources:
           server {
             listen 80 default_server;
             listen [::]:80 default_server;
-            server_name _;
+            server_name ${DomainName};
 
             location / {
               proxy_pass http://127.0.0.1:${AppPort};
@@ -200,10 +208,13 @@ Resources:
 Outputs:
   AppUrl:
     Description: Public URL for the vulnerable workshop app.
-    Value: !Sub 'http://${WorkshopElasticIp}'
+    Value: !Sub 'https://${DomainName}'
   PublicIp:
     Description: Elastic IP address associated with the EC2 instance.
     Value: !Ref WorkshopElasticIp
+  DomainNameOutput:
+    Description: Public DNS name intended for the workshop app.
+    Value: !Ref DomainName
   WorkshopBucketName:
     Description: Name of the S3 bucket that stores the workshop code object.
     Value: !Ref WorkshopBucket

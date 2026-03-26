@@ -11,6 +11,7 @@ This stack deploys a single public EC2 instance running the vulnerable app, an e
 - `AppPort`: internal TCP port used by the Express app behind Nginx. Default: `3000`
 - `AppRepositoryUrl`: public Git URL cloned onto the EC2 instance during bootstrap.
 - `AppRepositoryRef`: branch or tag checked out during bootstrap.
+- `DomainName`: public DNS name that points at the Elastic IP and is used by Nginx. Default: `eol.rsa.aikido-security.com`
 - `WorkshopBucketName`: globally unique S3 bucket name used for the workshop code file.
 - `AppTitle`, `AppSubtitle`, `WorkshopHint`: copy injected into the landing page.
 
@@ -18,6 +19,7 @@ This stack deploys a single public EC2 instance running the vulnerable app, an e
 
 - `AppUrl`: direct HTTP entrypoint for workshop attendees
 - `PublicIp`: Elastic IP attached to the workshop host, useful before DNS is configured
+- `DomainNameOutput`: DNS name configured for the attendee-facing site
 - `WorkshopBucketName`: bucket that stores the workshop code object
 
 ## Deployment Shape
@@ -26,6 +28,7 @@ This stack deploys a single public EC2 instance running the vulnerable app, an e
 - The EC2 instance is launched with IMDS enabled and `HttpTokens=optional`, which leaves IMDSv1 reachable from the instance.
 - The instance ENI explicitly associates a public IP address, and the stack also allocates an Elastic IP so the attendee entrypoint stays stable.
 - Nginx listens on port `80` and proxies requests to the Node app on `AppPort`.
+- The security group allows both `80` and `443` so the instance is ready for Let's Encrypt or another on-instance TLS setup.
 - The instance profile grants:
   - `s3:ListAllMyBuckets`
   - `s3:ListBucket` on the workshop bucket

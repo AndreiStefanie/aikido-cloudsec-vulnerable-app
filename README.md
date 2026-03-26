@@ -53,6 +53,7 @@ At minimum, set:
 - `VpcId`: your default VPC ID
 - `SubnetId`: a public subnet ID from that default VPC
 - `AppRepositoryRef`: a branch or tag that contains the version of this repo you want the instance to clone
+- `DomainName`: the DNS name you will point at the workshop Elastic IP
 - `WorkshopBucketName`: a globally unique S3 bucket name
 
 `AppRepositoryUrl` defaults to this GitHub repository. If you deploy from a fork or another mirror, override it.
@@ -68,6 +69,7 @@ aws cloudformation deploy \
     VpcId='vpc-xxxxxxxx' \
     SubnetId='subnet-xxxxxxxx' \
     AppRepositoryRef='main' \
+    DomainName='eol.rsa.aikido-security.com' \
     WorkshopBucketName='lifecycle-data-cache-demo'
 ```
 
@@ -75,7 +77,7 @@ After the stack finishes:
 
 1. Open the `AppUrl` output to confirm the landing page is reachable.
 2. Upload your text file to the bucket from the `WorkshopBucketName` output.
-3. Point DNS at the `PublicIp` Elastic IP output if you want attendees to use a hostname.
+3. Point `DomainName` at the `PublicIp` Elastic IP output.
 4. Distribute only the public URL or IP to attendees.
 
 ## Maintainer Notes
@@ -91,6 +93,8 @@ The EC2 instance profile is intentionally scoped so exfiltrated credentials can:
 It cannot write objects or broadly enumerate other AWS services.
 
 The stack bootstraps the application by cloning this repository onto the EC2 instance and installing the Node dependencies from `app/package.json`. Push the desired branch or tag before deployment so the instance can retrieve the correct version.
+
+For TLS, the stack is prepared for on-instance Nginx termination: ports `80` and `443` are open, and Nginx is configured with the supplied `DomainName`. After DNS points at the Elastic IP, issue a certificate on the instance with Certbot or another ACME client.
 
 ## Workshop Validation
 
