@@ -1,6 +1,9 @@
 const express = require("express");
+const helmet = require("helmet");
 
 const app = express();
+
+app.use(helmet());
 
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
 const APP_TITLE = process.env.APP_TITLE || "Lifecycle Lookup";
