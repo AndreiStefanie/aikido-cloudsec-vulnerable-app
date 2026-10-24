@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-lifecycle-app
+  labels:
+    app: {{ .Release.Name }}-lifecycle-app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-lifecycle-app
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-lifecycle-app
+    spec:
+      containers:
+        - name: app
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["node", "server.js"]
+          env:
+            - name: PORT
+              value: "{{ .Values.appPort }}"
+          ports:
+            - containerPort: {{ .Values.appPort }}
+        # reverse proxy sidecar, hardcoded in the template rather than wired through values
+        - name: nginx
+          image: nginx:1.16.0
+          ports:
+            - containerPort: 80

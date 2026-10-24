@@ -1,0 +1,6 @@
+apiVersion: v2
+name: observability-sidecars
+description: Mesh, ingress and monitoring sidecars, one image per public registry
+type: application
+version: 0.1.0
+appVersion: "6.5.0"

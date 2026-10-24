@@ -1,0 +1,7 @@
+apiVersion: v2
+name: edge-cases
+description: Image references the Helm image spider should skip, plus known detection gaps
+type: application
+version: 0.1.0
+# the web container falls back to this when its tag is empty
+appVersion: "1.25.3"

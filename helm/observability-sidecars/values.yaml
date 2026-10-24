@@ -1,0 +1,26 @@
+# Docker Hub, non-library namespace
+envoy:
+  image:
+    repository: envoyproxy/envoy
+    tag: v1.27.0
+
+# Quay.io, single-string form
+nodeExporter:
+  image: quay.io/prometheus/node-exporter:v1.6.1
+
+# registry.k8s.io, split registry/repository/tag form
+ingressController:
+  image:
+    registry: registry.k8s.io
+    repository: ingress-nginx/controller
+    tag: v1.8.1
+
+# GitHub Container Registry
+podinfo:
+  image: ghcr.io/stefanprodan/podinfo:6.5.0
+
+# AWS public ECR
+redis:
+  image:
+    repository: public.ecr.aws/docker/library/redis
+    tag: "7.0.11"

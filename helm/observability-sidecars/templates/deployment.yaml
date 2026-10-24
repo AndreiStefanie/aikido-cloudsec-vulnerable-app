@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-observability
+  labels:
+    app: {{ .Release.Name }}-observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-observability
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-observability
+    spec:
+      containers:
+        - name: podinfo
+          image: {{ .Values.podinfo.image | quote }}
+          ports:
+            - containerPort: 9898
+        - name: envoy
+          image: "{{ .Values.envoy.image.repository }}:{{ .Values.envoy.image.tag }}"
+          ports:
+            - containerPort: 10000
+        - name: node-exporter
+          image: {{ .Values.nodeExporter.image | quote }}
+          ports:
+            - containerPort: 9100
+        - name: ingress-controller
+          image: "{{ .Values.ingressController.image.registry }}/{{ .Values.ingressController.image.repository }}:{{ .Values.ingressController.image.tag }}"
+        - name: redis
+          image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+          ports:
+            - containerPort: 6379
+        # same image as the lifecycle-app nginx sidecar, spelled with the full Docker Hub prefix
+        - name: status-page
+          image: docker.io/library/nginx:1.16.0
+          ports:
+            - containerPort: 8080

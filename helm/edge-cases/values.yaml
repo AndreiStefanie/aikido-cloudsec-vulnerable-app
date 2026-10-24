@@ -1,0 +1,33 @@
+# --- should be skipped ---
+
+# private registry hostname
+api:
+  image:
+    repository: registry.example.com/team/api
+    tag: "2.3.0"
+
+# private registry with a port
+legacyWorker:
+  image: myregistry.internal:5000/app:1.0
+
+# digest-pinned, there is no tag to onboard
+pinnedProxy:
+  image: nginx@sha256:c7a6ad68be85142c7fe1089e48faa1e7c7166a194caa9180ddea66345876b9d2
+
+# --- known gaps ---
+
+# empty tag means "use the chart's appVersion" (1.25.3), not latest
+web:
+  image:
+    repository: nginx
+    tag: ""
+
+# unquoted, so YAML parses it as the float 3.1
+oldBase:
+  image:
+    repository: alpine
+    tag: 3.10
+
+# regional GCR host, public but not recognised
+pause:
+  image: eu.gcr.io/k8s-artifacts-prod/pause:3.9
