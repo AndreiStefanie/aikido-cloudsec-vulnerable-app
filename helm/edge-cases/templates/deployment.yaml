@@ -24,6 +24,10 @@ spec:
           image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
         - name: legacy-worker
           image: {{ .Values.legacyWorker.image | quote }}
+        - name: private-app
+          image: {{ .Values.privateApp.image | quote }}
+        - name: lookalike
+          image: {{ .Values.lookalike.image | quote }}
         - name: pinned-proxy
           image: {{ .Values.pinnedProxy.image | quote }}
         - name: web

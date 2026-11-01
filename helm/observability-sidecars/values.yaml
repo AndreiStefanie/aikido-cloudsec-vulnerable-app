@@ -2,7 +2,7 @@
 envoy:
   image:
     repository: envoyproxy/envoy
-    tag: v1.27.0
+    tag: v1.28.0
 
 # Quay.io, single-string form
 nodeExporter:

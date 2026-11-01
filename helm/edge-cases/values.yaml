@@ -10,6 +10,14 @@ api:
 legacyWorker:
   image: myregistry.internal:5000/app:1.0
 
+# known public registry, but private (or missing), so it cannot be scanned without credentials
+privateApp:
+  image: ghcr.io/aikidosec/this-does-not-exist-xyz:1.0
+
+# looks like ghcr.io, but is a different host
+lookalike:
+  image: ghcr.io.example.com/team/app:1.0
+
 # digest-pinned, there is no tag to onboard
 pinnedProxy:
   image: nginx@sha256:c7a6ad68be85142c7fe1089e48faa1e7c7166a194caa9180ddea66345876b9d2
