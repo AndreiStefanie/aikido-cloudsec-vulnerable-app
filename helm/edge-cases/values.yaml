@@ -39,3 +39,7 @@ oldBase:
 # regional GCR host, public but not recognised
 pause:
   image: eu.gcr.io/k8s-artifacts-prod/pause:3.9
+
+# Security context
+podSecurityContext:
+  runAsNonRoot: true

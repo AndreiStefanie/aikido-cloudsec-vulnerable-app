@@ -1,19 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-edge-cases
+  name: "{{ .Release.Name }}-edge-cases"
   labels:
-    app: {{ .Release.Name }}-edge-cases
+    app: "{{ .Release.Name }}-edge-cases"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ .Release.Name }}-edge-cases
+      app: "{{ .Release.Name }}-edge-cases"
   template:
     metadata:
       labels:
-        app: {{ .Release.Name }}-edge-cases
+        app: "{{ .Release.Name }}-edge-cases"
     spec:
+      securityContext:
+{{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
         # list-item form ("- image:"), hardcoded in the template
         - image: busybox:1.36
